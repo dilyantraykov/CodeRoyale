@@ -35,10 +35,11 @@
                 sites.Add(siteId, site);
             }
 
+            var round = 0;
             // game loop
             while (true)
             {
-                var gameContext = new GameContext();
+                var gameContext = new GameContext() { Round = ++round };
                 inputs = Console.ReadLine().Split(' ');
 
                 int gold = int.Parse(inputs[0]);
@@ -51,8 +52,8 @@
                 {
                     inputs = Console.ReadLine().Split(' ');
                     int siteId = int.Parse(inputs[0]);
-                    int ignore1 = int.Parse(inputs[1]); // used in future leagues
-                    int ignore2 = int.Parse(inputs[2]); // used in future leagues
+                    int remainingGold = int.Parse(inputs[1]); // used in future leagues
+                    int maxMineSize = int.Parse(inputs[2]); // used in future leagues
                     int structureType = int.Parse(inputs[3]); // -1 = No structure, 2 = Barracks
                     int owner = int.Parse(inputs[4]); // -1 = No structure, 0 = Friendly, 1 = Enemy
                     int param1 = int.Parse(inputs[5]);
@@ -60,6 +61,8 @@
 
                     var site = sites[siteId];
                     site.Owner = (OwnerType) owner;
+                    site.MaximumGoldRate = maxMineSize;
+                    site.RemainingGold = remainingGold;
                     if (structureType == Constants.BarracksIdentifier)
                     {
                         var barracks = new Barracks()
@@ -73,6 +76,58 @@
                         };
 
                         site = barracks;
+
+                        if (site.Owner == OwnerType.Friendly)
+                        {
+                            gameContext.MyBarracks.Add(barracks);
+                        }
+                        else
+                        {
+                            gameContext.EnemyBarracks.Add(barracks);
+                        }
+                    }
+                    else if (structureType == Constants.TowerIdentifier)
+                    {
+                        var tower = new Tower()
+                        {
+                            Id = siteId,
+                            Position = site.Position,
+                            Radius = site.Radius,
+                            Owner = site.Owner,
+                            Health = param1,
+                            AttackRadius = param2
+                        };
+
+                        site = tower;
+                        if (site.Owner == OwnerType.Friendly)
+                        {
+                            gameContext.MyTowers.Add(tower);
+                        }
+                        else
+                        {
+                            gameContext.EnemyTowers.Add(tower);
+                        }
+                    }
+                    else if (structureType == Constants.MineIdentifier)
+                    {
+                        var mine = new Mine()
+                        {
+                            Id = siteId,
+                            Position = site.Position,
+                            Radius = site.Radius,
+                            Owner = site.Owner,
+                            CurrentGoldRate = param1
+                        };
+
+                        site = mine;
+                        if (site.Owner == OwnerType.Friendly)
+                        {
+                            gameContext.MyMines.Add(mine);
+                        }
+                        else
+                        {
+                            gameContext.EnemyMines.Add(mine);
+                        }
                     }
 
                     gameContext.Sites.Add(siteId, site);
@@ -97,16 +152,52 @@
 
                     gameContext.Units.Add(unit);
 
-                    if (unit.Type == UnitType.Queen)
+                    switch (unit.Type)
                     {
-                        if (unit.Owner == OwnerType.Friendly)
-                        {
-                            gameContext.MyQueen = unit;
-                        }
-                        else
-                        {
-                            gameContext.EnemyQueen = unit;
-                        }
+                        case UnitType.Queen:
+                            if (unit.Owner == OwnerType.Friendly)
+                            {
+                                gameContext.MyQueen = unit;
+                                if (round == 1)
+                                {
+                                    gameContext.QueenMaxHealth = health;
+                                }
+                            }
+                            else
+                            {
+                                gameContext.EnemyQueen = unit;
+                            }
+                            break;
+                        case UnitType.Archer:
+                            if (unit.Owner == OwnerType.Friendly)
+                            {
+                                gameContext.MyArchers.Add(unit);
+                            }
+                            else
+                            {
+                                gameContext.EnemyArchers.Add(unit);
+                            }
+                            break;
+                        case UnitType.Knight:
+                            if (unit.Owner == OwnerType.Friendly)
+                            {
+                                gameContext.MyKnights.Add(unit);
+                            }
+                            else
+                            {
+                                gameContext.EnemyKnights.Add(unit);
+                            }
+                            break;
+                        case UnitType.Giant:
+                            if (unit.Owner == OwnerType.Friendly)
+                            {
+                                gameContext.MyGiants.Add(unit);
+                            }
+                            else
+                            {
+                                gameContext.EnemyGiants.Add(unit);
+                            }
+                            break;
                     }
                 }
 
@@ -122,11 +213,9 @@
         public const int MaxTurns = 200;
 
         public const int StartingGold = 100;
-        public const int GoldPerTurn = 10;
 
         public const int QueenRadius = 30;
-        public const int QueenMoveRange = 60;
-        public const int QueenMaxHealth = 100;
+        public const int QueenSpeed = 60;
 
         public const string WaitCommand = "WAIT";
         public const string MoveCommand = "MOVE";
@@ -136,12 +225,47 @@
         public const string BarracksStructure = "BARRACKS";
         public const int BarracksIdentifier = 2;
 
+        public const string TowerStructure = "TOWER";
+        public const int TowerIdentifier = 1;
+
+        public const string MineStructure = "MINE";
+        public const int MineIdentifier = 0;
+
         public const string KnightType = "KNIGHT";
         public const string ArcherType = "ARCHER";
         public const string GiantType = "GIANT";
 
         public const int KnightGroupCost = 80;
+        public const int KnightGroupCount = 4;
+        public const int KnightSpeed = 100;
+        public const int KnightDamage = 1;
+        public const int KnightMaxHealth = 30;
+        public const int KnightTrainingTime = 5;
+        public const int KnightRadius = 20;
+
         public const int ArcherGroupCost = 100;
+        public const int ArcherGroupCount = 2;
+        public const int ArcherSpeed = 75;
+        public const int ArcherDamageToGiants = 10;
+        public const int ArcherDamageToCreeps = 2;
+        public const int ArcherMaxHealth = 45;
+        public const int ArcherTrainingTime = 8;
+        public const int ArcherRadius = 25;
+
+        public const int GiantGroupCost = 140;
+        public const int GiantGroupCount = 1;
+        public const int GiantSpeed = 50;
+        public const int GiantDamage = 80;
+        public const int GiantMaxHealth = 200;
+        public const int GiantTrainingTime = 10;
+        public const int GiantRadius = 40;
+
+        public const int SiteDiscoveryRange = 300;
+
+        public const int TowerBaseDamageToCreeps = 3;
+        public const int TowerBaseDamageToQueen = 1;
+        public const int TowerBaseDamageRangeGain = 200;
+        public const int MaxTowerHealth = 800;
     }
 
     public class GameContext
@@ -152,7 +276,23 @@
         {
             this.Sites = new Dictionary<int, Site>();
             this.Units = new List<Unit>();
+            this.MyArchers = new List<Unit>();
+            this.EnemyArchers = new List<Unit>();
+            this.MyKnights = new List<Unit>();
+            this.EnemyKnights = new List<Unit>();
+            this.MyGiants = new List<Unit>();
+            this.EnemyGiants = new List<Unit>();
+            this.MyBarracks = new List<Barracks>();
+            this.EnemyBarracks = new List<Barracks>();
+            this.MyTowers = new List<Tower>();
+            this.EnemyTowers = new List<Tower>();
+            this.MyMines = new List<Mine>();
+            this.EnemyMines = new List<Mine>();
         }
+
+        public int QueenMaxHealth { get; set; }
+
+        public int Round { get; set; }
 
         public int TouchedSiteId { get; set; }
 
@@ -166,6 +306,31 @@
 
         public Unit EnemyQueen { get; set; }
 
+        public List<Unit> MyArchers { get; set; }
+
+        public List<Unit> EnemyArchers { get; set; }
+
+        public List<Unit> MyKnights { get; set; }
+
+        public List<Unit> EnemyKnights { get; set; }
+
+        public List<Unit> MyGiants { get; set; }
+
+        public List<Unit> EnemyGiants { get; set; }
+
+        public List<Tower> MyTowers { get; set; }
+
+        public List<Tower> EnemyTowers { get; set; }
+
+        public List<Barracks> MyBarracks { get; set; }
+
+        public List<Barracks> EnemyBarracks { get; set; }
+
+        public List<Mine> MyMines { get; set; }
+
+        public List<Mine> EnemyMines { get; set; }
+
+
         public void ProcessTurn()
         {
             PickCommandForQueen();
@@ -175,14 +340,16 @@
         {
             var primaryHandlers = new List<ActionsHandler>()
             {
-                new BuildBarracksHandler(),
+                new BuildStructureHandler(),
+                new RunToTowerHandler(),
                 new MoveToClosestSiteHandler(),
                 new DefaultWaitHandler()
             };
 
             var trainingHandlers = new List<ActionsHandler>()
             {
-                new TrainAllBarracksHandler(),
+                new TrainGiantsHandler(),
+                new TrainKnightsHandler(),
                 new DefaultTrainingHandler()
             };
 
@@ -211,9 +378,19 @@
             Console.WriteLine(command.Trim());
         }
 
-        public void Build(int siteId, UnitType type)
+        public void BuildBarracks(int siteId, UnitType type)
         {
             Console.WriteLine($"{Constants.BuildCommand} {siteId} {Constants.BarracksStructure}-{type.ToString().ToUpper()}");
+        }
+
+        public void BuildTower(int siteId)
+        {
+            Console.WriteLine($"{Constants.BuildCommand} {siteId} {Constants.TowerStructure}");
+        }
+
+        public void BuildMine(int siteId)
+        {
+            Console.WriteLine($"{Constants.BuildCommand} {siteId} {Constants.MineStructure}");
         }
 
         public void Move(Position position)
@@ -227,20 +404,98 @@
         }
     }
 
-    public class BuildBarracksHandler : ActionsHandler
+    public class RunToTowerHandler : ActionsHandler
     {
         public override bool CanProcessTurn(GameContext context)
         {
             var queen = context.MyQueen;
-            if (context.TouchedSiteId != -1)
+            if (context.EnemyKnights.Where(x => MathUtils.GetDistance(x, queen) < Constants.QueenRadius * 4).Count() > 4)
             {
-                var site = context.Sites[context.TouchedSiteId];
-                if (site.Owner == OwnerType.Neutral)
+                var closestTower = context.MyTowers.OrderByDescending(x => MathUtils.GetDistance(x, queen)).FirstOrDefault();
+                if (closestTower != null)
                 {
-                    var type = (UnitType) GameContext.random.Next(0, 2);
-                    context.Build(site.Id, type);
+                    context.Move(closestTower);
                     return true;
                 }
+            }
+
+            return false;
+        }
+    }
+
+    internal class BuildStructureHandler : ActionsHandler
+    {
+        public override bool CanProcessTurn(GameContext context)
+        {
+            if (context.TouchedSiteId != -1 &&
+                context.Sites[context.TouchedSiteId].Owner == OwnerType.Neutral)
+            {
+                if (!context.MyBarracks.Where(x => x.CreepType == CreepType.Knight).Any())
+                {
+                    context.BuildBarracks(context.TouchedSiteId, UnitType.Knight);
+                    return true;
+                }
+                else
+                {
+                    if (!context.MyGiants.Any() &&
+                        context.EnemyTowers.Any())
+                    {
+                        context.BuildBarracks(context.TouchedSiteId, UnitType.Giant);
+                        return true;
+                    }
+                    if (context.MyMines.Count < 3 &&
+                        !context.EnemyKnights.Any(x => MathUtils.GetDistance(x, context.MyQueen) < Constants.QueenRadius * 2))
+                    {
+                        context.BuildMine(context.TouchedSiteId);
+                        return true;
+                    }
+                    else
+                    {
+                        context.BuildTower(context.TouchedSiteId);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+    }
+
+    internal class TrainKnightsHandler : ActionsHandler
+    {
+        public override bool CanProcessTurn(GameContext context)
+        {
+            var knightBarracks = context.MyBarracks
+                   .Where(x => x.CreepType == CreepType.Knight)
+                   .OrderBy(x => MathUtils.GetDistance(x, context.EnemyQueen));
+
+            if (knightBarracks.Any() &&
+                context.AvailableGold >= Constants.KnightGroupCost)
+            {
+                context.Train(new List<int>() { knightBarracks.First().Id });
+                context.AvailableGold -= Constants.KnightGroupCost;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    public class TrainArchersHandler : ActionsHandler
+    {
+        public override bool CanProcessTurn(GameContext context)
+        {
+            var archerBarracks = context.MyBarracks
+                   .Where(x => x.CreepType == CreepType.Archer)
+                   .OrderBy(x => MathUtils.GetDistance(x, context.MyQueen));
+
+            if (archerBarracks.Any() &&
+                context.EnemyKnights.Count / Constants.KnightGroupCount > 1 &&
+                context.MyArchers.Count == 0 &&
+                context.AvailableGold >= Constants.ArcherGroupCost)
+            {
+                context.Train(new List<int>() { archerBarracks.First().Id });
+                return true;
             }
 
             return false;
@@ -255,38 +510,33 @@
             var closestSite = context.Sites.Values
                 .Where(x => x.Owner == OwnerType.Neutral)
                 .OrderBy(x => MathUtils.GetDistance(queen, x)).FirstOrDefault();
-            context.Move(closestSite);
-            return true;
+            if (closestSite != null)
+            {
+                context.Move(closestSite);
+                return true;
+            }
+
+            return false;
         }
     }
 
-    public class TrainAllBarracksHandler : ActionsHandler
+    public class TrainGiantsHandler : ActionsHandler
     {
         public override bool CanProcessTurn(GameContext context)
         {
-            var barracks = context.Sites.Values
-                .Where(x => x is Barracks && x.Owner == OwnerType.Friendly)
-                .Select(x => new
-                {
-                    Id = x.Id,
-                    Cost = (x as Barracks).CreepCost
-                });
-            if (barracks.Any())
+            var giantBarracks = context.MyBarracks
+                .Where(x => x.CreepType == CreepType.Giant)
+                .OrderBy(x => MathUtils.GetDistance(x, context.EnemyQueen));
+
+            if (giantBarracks.Any() &&
+                context.EnemyTowers.Count > 0 &&
+                context.MyGiants.Count == 0 &&
+                context.AvailableGold >= Constants.GiantGroupCost)
             {
-                var barracksIds = new List<int>();
-
-                foreach (var item in barracks)
-                {
-                    if (context.AvailableGold >= item.Cost)
-                    {
-                        barracksIds.Add(item.Id);
-                        context.AvailableGold -= item.Cost;
-                    }
-                }
-
-                context.Train(barracksIds);
+                context.Train(new List<int>() { giantBarracks.First().Id });
                 return true;
             }
+
             return false;
         }
     }
@@ -339,6 +589,8 @@
         public int Id { get; set; }
         public int Radius { get; set; }
         public OwnerType Owner { get; set; }
+        public int RemainingGold { get; set; }
+        public int MaximumGoldRate { get; set; }
     }
 
     public class Barracks : Site
@@ -352,16 +604,27 @@
         }
     }
 
+    public class Tower : Site
+    {
+        public int Health { get; set; }
+
+        public int AttackRadius { get; set; }
+    }
+
+    public class Mine : Site
+    {
+        public int CurrentGoldRate { get; set; }
+    }
+
     public class Unit : Entity
     {
-
         public OwnerType Owner { get; set; }
 
         public UnitType Type { get; set; }
 
         public int Health { get; set; }
     }
-    
+
     public class Entity
     {
         public Position Position { get; set; }
@@ -377,14 +640,16 @@
     public enum CreepType
     {
         Knight = 0,
-        Archer = 1
+        Archer = 1,
+        Giant = 2
     }
 
     public enum UnitType
     {
         Queen = -1,
         Knight = 0,
-        Archer = 1
+        Archer = 1,
+        Giant = 2
     }
 
     public static class MathUtils
